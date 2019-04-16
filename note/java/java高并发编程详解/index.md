@@ -4,7 +4,7 @@
 
 ## 第一部分 多线程基础
 
-[第1章 快速认识线程]()  
+[第1章 快速认识线程](https://github.com/lvCmx/study/blob/master/note/java/java%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E8%AF%A6%E8%A7%A3/content/1%E5%BF%AB%E9%80%9F%E8%AE%A4%E8%AF%86%E7%BA%BF%E7%A8%8B.md)  
 
 [第2章 深入理解Thread构造函数]()  
 
