@@ -6,7 +6,7 @@
 
 [第1章 快速认识线程](https://github.com/lvCmx/study/blob/master/note/java/java%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E8%AF%A6%E8%A7%A3/content/1%E5%BF%AB%E9%80%9F%E8%AE%A4%E8%AF%86%E7%BA%BF%E7%A8%8B.md)  
 
-[第2章 深入理解Thread构造函数]()  
+[第2章 深入理解Thread构造函数](https://github.com/lvCmx/study/blob/master/note/java/java%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E8%AF%A6%E8%A7%A3/content/2%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Thread%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0.md)  
 
 [第3章 Thread API的详细介绍]()  
 
