@@ -127,6 +127,41 @@ System.out.println("main end!");
 
 其运行结果表示，main线程会等待thread-0线程执行结束后，才会接着执行。
 
+join方法是由wait方法实现的，所以join时，阻塞的线程也会释放出资源
+
+```java
+public final synchronized void join(long millis)
+throws InterruptedException {
+    long base = System.currentTimeMillis();
+    long now = 0;
+
+    if (millis < 0) {
+        throw new IllegalArgumentException("timeout value is negative");
+    }
+
+    if (millis == 0) {
+        while (isAlive()) {
+            wait(0);
+        }
+    } else {
+        while (isAlive()) {
+            long delay = millis - now;
+            if (delay <= 0) {
+                break;
+            }
+            wait(delay);
+            now = System.currentTimeMillis() - base;
+        }
+    }
+}
+```
+
+从源码中可以看出，join其实调用的是wait方法，而它是如何实现，A线程调用B线程的join方法，让A线程等待的呢？
+
+wait()方法调用后会释放锁，并阻塞当前线程
+
+线程A调用线程B线程的join时，需要先获取到线程B的对象锁，进入到线程B的join方法时，调用了wait，而wait方法会释放当前线程B对象锁，并阻塞当前A线程
+
 **关闭线程**
 
 正常结束：
