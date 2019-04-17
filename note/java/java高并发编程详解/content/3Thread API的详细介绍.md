@@ -12,6 +12,8 @@
 
 因为Java提供的锁是对象级的而不是线程级的，每个对象都有锁，通过线程获得，如果线程需要等待某些锁那么调用对象中的wait()方法就有意义了。如果wait()方法定义在Thread类中，线程正在等待的是哪个锁就不明显了。而这些方法属于锁级别的操作，所以把它们定义在Object类中因为锁属于对象。
 
+##### Thread常用API
+
 **sleep**
 
 sleep方法被调用时，这会继续持有它的资源不会释放，并且Thread.sleep()它只会导致当前线程休眠。
@@ -41,4 +43,99 @@ getPriority()获取线程的优先级
 getContextClassLoader()：获取线程上下文的类加载器，就是这个线程是由哪个类加载器加载的。
 
 setContextClassLoader()：设置该线程的类加载器，它打破了java类加载器的父委托机制。
+
+**线程interrupt，isinterrupted，interrupted**
+
+线程提供了一个方法stop，而该方法已经废除，当调用interrupt时，会修改线程的interrupt flag的标识。调用interrupt()方法仅仅是在当前线程中打了一个停止的标记，并不是真的停止线程。
+
+isInterrupted它主要判断当前线程是否被中断，方法仅仅是对interrupt标识的一个判断，并不会影响标识发生任何改变。
+
+interrupted是一个静态方法，它与isInterrupted不同的是，当调用interrupt时，再调用interrupted返回true之后，它也会修改interrupt flag状态为false。
+
+例如：
+
+isinterrupted：  
+
+```java
+Thread thread = new Thread() {
+    @Override
+    public void run() {
+        while(true){}
+    }
+};
+thread.start();
+try{
+    TimeUnit.MILLISECONDS.sleep(10);
+}catch (Exception e){ }
+System.out.println(thread.isInterrupted());     //false
+thread.interrupt();
+System.out.println(thread.isInterrupted());     //true
+System.out.println(thread.isInterrupted());     //true
+```
+
+```java
+interrupted:  
+Thread thread2 = new Thread() {
+    @Override
+    public void run() {
+        while(true){
+            System.out.println(Thread.interrupted());
+        }
+    }
+};
+thread2.setDaemon(true);
+thread2.start();
+thread2.interrupt();
+try{
+    TimeUnit.MILLISECONDS.sleep(15);
+}catch (Exception e){
+    e.printStackTrace();
+}
+```
+
+那么总结一下项目中该如何使用：
+
+当需要线程中断的时候，调用interrupt方法，如果在此期间又调用了sleep阻塞方法，会产生InterruptedException，可以try/catch进行处理。
+
+**join**
+
+join某个线程A，会使当前线程B进入等待，直到线程A结束生命周期，或者到达给定的时间。
+
+```java
+Thread thread = new Thread() {
+    @Override
+    public void run() {
+        for(int i=0;i<10;i++){
+            System.out.println(Thread.currentThread().getName()
+                    +System.currentTimeMillis());
+            try {
+                TimeUnit.SECONDS.sleep(2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+};
+thread.start();
+thread.join();
+for(int i=0;i<10;i++){
+    System.out.println(Thread.currentThread().getName()
+            +System.currentTimeMillis());
+}
+System.out.println("main end!");
+```
+
+其运行结果表示，main线程会等待thread-0线程执行结束后，才会接着执行。
+
+**关闭线程**
+
+正常结束：
+
+1. 线程结束生命周期正常结束
+2. 捕获中断信号关闭线程，这也就是通过interrupt方法
+3. 使用volatile修饰自定义一个变量flag，使用flag状态+isInterrupted方法。
+
+异常退出：
+
+1. 进程假死，原因就是某个线程阻塞了，或者线程出现了死锁的情况。
 
