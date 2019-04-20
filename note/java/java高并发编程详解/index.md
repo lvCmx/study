@@ -10,7 +10,7 @@
 
 [第3章 Thread API的详细介绍](https://github.com/lvCmx/study/blob/master/note/java/java%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E8%AF%A6%E8%A7%A3/content/3Thread%20API%E7%9A%84%E8%AF%A6%E7%BB%86%E4%BB%8B%E7%BB%8D.md)  
 
-[第4章 线程安全与数据同步]()  
+[第4章 线程安全与数据同步](https://github.com/lvCmx/study/blob/master/note/java/java%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E8%AF%A6%E8%A7%A3/content/4%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E4%B8%8E%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5.md)  
 
 [第5章 线程间通信]()   
 
