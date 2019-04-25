@@ -1,0 +1,247 @@
+### Semaphore的使用
+
+Semaphore类是一个计数信号量，必须由获取它的线程释放，通常用于限制可以访问某些资源线程数目。
+
+Semaphore所提供的功能完全就是synchronized关键字的升级版，但它提供的功能更加的强大与方便，主要的作用就是控制线程并发的数量。
+
+##### 1.1Semaphore的使用
+
+此类的主要作用就是限制线程并发的数量，如果不限制线程并发的数量，则CPU的资源很快就被耗尽。
+
+```java
+public class SemaphoreTest {
+    public static void main(String[] args) throws Exception{
+        Service service = new Service();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    service.test();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    service.test();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    service.test();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+}
+class Service {
+    Semaphore semaphore = new Semaphore(1);
+    public void test() throws InterruptedException {
+        semaphore.acquire();
+        System.out.println(Thread.currentThread().getName()+":"+System.currentTimeMillis());
+        Thread.sleep(1000);
+        System.out.println(Thread.currentThread().getName()+":"+System.currentTimeMillis());
+        semaphore.release();
+    }
+}
+运行结果：
+Thread-0:1556096222802
+Thread-0:1556096223804
+Thread-1:1556096223804
+Thread-1:1556096224805
+Thread-2:1556096224805
+Thread-2:1556096225807
+```
+
+在定义Semaphore的时候指定的大小为1，说明同一时刻只允许一个线程执行acquire()和release()之间的代码。
+
+**方法acquire(permits)参数作用及动态添加permits许可数量**
+
+有参方法acquire(int permits)的功能是每调用1次此方法，就使用x个许可。
+
+如果在使用的时候semaphore.acquire(2)，说明同一时间只有5个线程允许执行acquire()和release()之间的代码。
+
+**acquireUninterruptibly()的使用**
+
+方法acquireUninterruptibly()的作用是使等待进入acquire方法的线程，不允许被中断。如果调用线程的interrupt后，是不会中断的。
+
+**availablePermits()和drainPermits()**
+
+avaliablePermits()返回此Semaphore对象中当前可用的许可数，此方法通常用于调试。
+
+drainPermits()可获取并返回立即可用的所有许可个数，并且将可用许可置0
+
+**getQueueLength()和hasQueuedThreads(()**
+
+getQueueLength()的作用是取得等待许可的线程个数
+
+hasQueuedThreads()的作用是判断有没有线程在等待这个许可。
+
+**公平与非公平信号量的测试**
+
+所谓公平信号量是获得锁的顺序与线程启动的顺序有关，但不代表100%地获得信号量，仅仅是在概率上能得到保证，而非公平信号量就是无关的了。
+
+Semaphore semaphore = new Semaphore(1,isFair);其中isFair默认为false，如果为true，则表示是公平的。
+
+**tryAcquire()的使用**
+
+无参方法tryAcquire()的作用是尝试地获得1个许可，如果获取不到则返回false，此方法通常与if语句结合使用，其具有无阻塞的特点。
+
+有参方法tryAcquire(int permits)的作用是尝试地获得x个许可，如果获取不到则返回false。
+
+tryAcquire(long timeout,TimeUnit unit)的作用是反在指定的时间内尝试地获得1个许可，如果获取不到则返回false。
+
+tryAcquire(int permits,long timeout,TimeUnit unit)的作用是在指定的时间内尝试地获取x个许可，如果获取不到则返回false。
+
+**利用Semaphore实现生产者与消费者**
+
+```java
+public class RepastService {
+    volatile private Semaphore setSemaphore=new Semaphore(10); // 生产者
+    volatile private Semaphore getSemaphore=new Semaphore(20); // 消费者
+    volatile private ReentrantLock lock=new ReentrantLock();
+    volatile private Condition setCondition=lock.newCondition();
+    volatile private Condition getCondition=lock.newCondition();
+    // 最多只有4个盒子存放物品
+    volatile private Object[] producePostition=new Object[4];
+
+    private boolean isEmpty(){
+        boolean isEmpty=true;
+        for(int i=0;i<producePostition.length;i++){
+            if(producePostition[i]!=null){
+                isEmpty=false;
+                break;
+            }
+        }
+        return isEmpty;
+    }
+
+    private boolean isFull(){
+        boolean isFull=true;
+        for(int i=0;i<producePostition.length;i++){
+            if(producePostition[i]==null){
+                isFull=false;
+                break;
+            }
+        }
+        return isFull;
+    }
+
+    public void set(){
+        try{
+            setSemaphore.acquire(); //允许最多同时10个生产者
+            lock.lock();
+            while(isFull()){
+                setCondition.await();
+            }
+            for(int i=0;i<producePostition.length;i++){
+                if(producePostition[i]==null){
+                    producePostition[i]="数据";
+                    System.out.println(Thread.currentThread().getName()+"生产了"+producePostition[i]);
+                    break;
+                }
+            }
+            getCondition.signalAll();
+            lock.unlock();
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            setSemaphore.release();
+        }
+    }
+
+    public void get(){
+        try{
+            getSemaphore.acquire(); //允许20个消费者
+            lock.lock();
+            while(isEmpty()){
+                getCondition.await();
+            }
+            for(int i=0;i<producePostition.length;i++){
+                if(producePostition[i]!=null){
+                    System.out.println(Thread.currentThread().getName()+"消费了"+producePostition[i]);
+                    producePostition[i]=null;
+                    break;
+                }
+            }
+            setCondition.signalAll();
+            lock.unlock();
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            getSemaphore.release();
+        }
+    }
+}
+```
+
+
+
+##### 1.2Exchanger的使用
+
+类Exchanger的功能可以使2个线程之间传输数据，它比生产者/消费者模式使有的wait/notify要更加方便。
+
+类Exchanger中的exchange()方法具有阻塞的特色，也就是此方法被调用后等待其他线程来取得数据，如果没有其他线程取得数据，则一直阻塞等待。
+
+**exchange()传递数据**
+
+```java
+public class ExchangeTest {
+    public static void main(String[] args) {
+        Exchanger<String> exchanger=new Exchanger<>();
+        ExchangerThreadA exchangerThreadA = new ExchangerThreadA(exchanger);
+        ExchangerThreadB exchangerThreadB = new ExchangerThreadB(exchanger);
+        exchangerThreadA.start();
+        exchangerThreadB.start();
+    }
+}
+class ExchangerThreadA extends Thread{
+    private Exchanger<String> exchanger=null;
+
+    public ExchangerThreadA(Exchanger<String> exchanger){
+        this.exchanger=exchanger;
+    }
+    @Override
+    public void run() {
+        try{
+            System.out.println("A线程在B线程中取出的数据："+exchanger.exchange("中国人A"));
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+}
+
+class ExchangerThreadB extends Thread{
+    private Exchanger<String> exchanger=null;
+
+    public ExchangerThreadB(Exchanger<String> exchanger){
+        this.exchanger=exchanger;
+    }
+    @Override
+    public void run() {
+        try{
+            System.out.println("B线程在A线程中取出的数据："+exchanger.exchange("中国人B"));
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+}
+运行结果：
+B线程在A线程中取出的数据：中国人A
+A线程在B线程中取出的数据：中国人B
+```
+
+**方法exchage(V v,long timeout,TimeUnit unit)与超时**
+
+当调用这个方法后在指定的时间内没有其他线程获取数据，则出现超时异常TimeoutException。
+
