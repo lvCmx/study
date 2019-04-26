@@ -1,4 +1,4 @@
-### Semaphore的使用
+### Semaphore与Exchanger的使用
 
 Semaphore类是一个计数信号量，必须由获取它的线程释放，通常用于限制可以访问某些资源线程数目。
 
