@@ -13,7 +13,7 @@
 ### <a name="1">Semaphore与Exchanger的使用</a>
 Semaphore类是一个计数信号量，必须由获取它的线程释放，通常用于限制可以访问某些资源线程数目。  
 Semaphore所提供的功能完全就是synchronized关键字的升级版，但它提供的功能更加的强大与方便，主要的作用就是控制线程并发的数量。  
-##### 1.1Semaphore的使用
+##### 1.1Semaphore的使用  
 此类的主要作用就是限制线程并发的数量，如果不限制线程并发的数量，则CPU的资源很快就被耗尽。
 
 ```java
@@ -72,10 +72,10 @@ Thread-2:1556096225807
 ```
 
 在定义Semaphore的时候指定的大小为1，说明同一时刻只允许一个线程执行acquire()和release()之间的代码。  
-**方法acquire(permits)参数作用及动态添加permits许可数量**
+**方法acquire(permits)参数作用及动态添加permits许可数量**  
 有参方法acquire(int permits)的功能是每调用1次此方法，就使用x个许可。  
 如果在使用的时候semaphore.acquire(2)，说明同一时间只有5个线程允许执行acquire()和release()之间的代码。  
-**acquireUninterruptibly()的使用**
+**acquireUninterruptibly()的使用**  
 
 方法acquireUninterruptibly()的作用是使等待进入acquire方法的线程，不允许被中断。如果调用线程的interrupt后，是不会中断的。
 
