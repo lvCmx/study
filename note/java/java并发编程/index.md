@@ -247,7 +247,7 @@ A线程在B线程中取出的数据：中国人B
 
 当调用这个方法后在指定的时间内没有其他线程获取数据，则出现超时异常TimeoutException。
 
-### <a name="1">CountDownLatch和CyclicBarrier的使用</a>
+### <a name="2">CountDownLatch和CyclicBarrier的使用</a>
 
 ##### 2.1 CountDownLatch的使用
 
