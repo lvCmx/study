@@ -10,9 +10,7 @@
 
 <a href="#5">5.Future和Callable的使用</a>
 
-#### <a name="1">Semaphore和Exchanger的使用</a>
-### Semaphore与Exchanger的使用
-
+### <a name="1">Semaphore与Exchanger的使用</a>
 Semaphore类是一个计数信号量，必须由获取它的线程释放，通常用于限制可以访问某些资源线程数目。
 
 Semaphore所提供的功能完全就是synchronized关键字的升级版，但它提供的功能更加的强大与方便，主要的作用就是控制线程并发的数量。
