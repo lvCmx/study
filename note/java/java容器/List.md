@@ -63,7 +63,7 @@ public interface List<E> extends Collection<E> {
 
 ArrayList是基于数组来实现的，对于get和set方法调用花费常数时间。其缺点是新增和删除元素时（除非变动未端）需要花费O(n)的时间。
 
-
+ArrayList不是线程安全的，只能用在单线程环境下，多线程环境下可以考虑用Collections.synchronizedList(List)函数返回一个线程安全的ArrayList类。
 
 ArrayLit在创建时默认初始化10个存储空间，每次扩容是以1.5倍的空间递增。递增的公式：int newCapacity = oldCapacity + (oldCapacity >> 1);
 
@@ -76,7 +76,7 @@ private static final Object[] EMPTY_ELEMENTDATA = {}; //  定义一个空的数�
 private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {}; 
 // 存放元素的数组，用transient修饰的变量不需要被序列化。
 // elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA的List，将在添加第一个元素时扩展为DEFAULT_CAPACITY
-transient Object[] elementData;
+transient Object[] elementData; // 存储元素的数组
 private int size; // 当前数组长度(包含元素的个数)
 ```
 
@@ -105,23 +105,76 @@ public ArrayList(Collection<? extends E> c) {
 }
 ```
 
-**ArrayList源码解析**
-
-
-
-
-
 **ArrayList扩容机制**
 
+```java
+// 假设，目前ArrayList已经有10个元素，现在需要添加第11个元素。
+public boolean add(E e) {
+    // 扩容
+    ensureCapacityInternal(size + 1);  // Increments modCount!!
+    elementData[size++] = e;
+    return true;
+}
 
+private void ensureCapacityInternal(int minCapacity) {
+    // 如果elementData为空数组时，初始化值大小为DEFAULT_CAPACITY(10)
+    if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
+         minCapacity = Math.max(DEFAULT_CAPACITY, minCapacity);
+    }
+    // 扩容minCapacity
+    ensureExplicitCapacity(minCapacity);
+}
 
+private void ensureExplicitCapacity(int minCapacity) {
+    modCount++;
+    // overflow-conscious code
+    if (minCapacity - elementData.length > 0)
+        grow(minCapacity);
+}
 
+private void grow(int minCapacity) {
+    // overflow-conscious code
+    int oldCapacity = elementData.length;   // 原数组的大小
+    int newCapacity = oldCapacity + (oldCapacity >> 1);  // 将原数组扩大1.5倍
+    if (newCapacity - minCapacity < 0) // (扩容后的大小 - 原数组元素个数+1)<0
+        newCapacity = minCapacity;
+    if (newCapacity - MAX_ARRAY_SIZE > 0)
+        newCapacity = hugeCapacity(minCapacity);
+    // minCapacity is usually close to size, so this is a win:
+    elementData = Arrays.copyOf(elementData, newCapacity);
+}
+
+Arrays.copyOf采用的是System.arraycopy来实现的。
+public static <T,U> T[] copyOf(U[] original, int newLength, Class<? extends T[]> newType) {
+        @SuppressWarnings("unchecked")
+        T[] copy = ((Object)newType == (Object)Object[].class)
+            ? (T[]) new Object[newLength]
+            : (T[]) Array.newInstance(newType.getComponentType(), newLength);
+        System.arraycopy(original, 0, copy, 0,
+                         Math.min(original.length, newLength));
+        return copy;
+    }
+
+src - 源数组。
+srcPos - 源数组中的起始位置。
+dest - 目标数组。
+destPos - 目标数据中的起始位置。
+length - 要复制的数组元素的数量。
+public static native void arraycopy(Object src,  int  srcPos,Object dest, int destPos,int length);
+
+是直接对内存中的数据块进行复制的，是一整块一起复制的，它是采用本地编码实现的。
+
+```
 
 **ArrayList的size玄机**
 
+通过ArrayList(Collection c)创建时，if ((size = elementData.length) != 0) {  通过一句来完成为size赋值。
 
+add元素时，elementData[size++] = e; 保证添加元素时，size值自增1
 
+remove元素时：elementData[--size] = null; // clear to let GC do its work
 
+clear元素时：size = 0;
 
 **ArrayList的序列化**
 
@@ -177,3 +230,5 @@ private void readObject(java.io.ObjectInputStream s)
 反充列化的时候调用readObject时，从ObjectInputStream获取到了元素的值和size值，再恢复到elementData中。
 
 至于为什么序列化的时候不直接使用elementData来序列化，是因为elementData通常会预留一些容量，如果直接序列化会造成空间的浪费 。
+
+#### LinkedList
