@@ -57,7 +57,7 @@ public interface List<E> extends Collection<E> {
 
 #### 2.ArrayList
 
-![](F:\__study__\hulianwang\study\note\java\java容器\img\arraylist_01.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/img/arraylist_01.png)
 
 **ArrayList特点**
 
@@ -274,7 +274,7 @@ modCount在集合的add/remove/set等方法中都会改变它的值，而返回I
 
 #### LinkedList
 
-![](F:\__study__\hulianwang\study\note\java\java容器\img\linkedlist01.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/img/linkedlist01.png)
 
 LinkedList的底层是Deque双向链表，实现了Deque接口，而Deque接口继承于Queue接口。
 
