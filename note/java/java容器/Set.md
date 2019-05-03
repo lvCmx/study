@@ -161,5 +161,51 @@ HashSet(int initialCapacity, float loadFactor, boolean dummy) {
 }
 ```
 
+**LinkedHashSet其它方法**
 
+由于LinkedHashSet底层采用LinkedHashMap实现，所以它的方法都是调用LinkedHashMap中的方法。
+
+#### 4.SortedSet
+
+![](F:\__study__\hulianwang\study\note\java\java容器\img\sortedSet01.png)
+
+**SortedSet特点**
+
+- SortedSet无序并不可重复，但是会对存进入的元素进行自然排序
+- SortedSet中存放的元素必须要实现Comparable接口，如果不实现，添加时会报错：User cannot be cast to java.lang.Comparable
+
+#### 5.TreeSet
+
+![](F:\__study__\hulianwang\study\note\java\java容器\img\treeSet01.png)
+
+**TreeSet特点**
+
+TreeSet是SortedSet接口的实现类，它可以保证存入的元素排序。
+
+TreeSet也是线程不安全的，如果想保证线程安全，可以通过Collections.synchronizedSortedSet转换。
+
+**构造方法**
+
+```java
+public TreeSet() {
+    this(new TreeMap<E,Object>());
+}
+public TreeSet(Comparator<? super E> comparator) {
+    this(new TreeMap<>(comparator));
+}
+public TreeSet(Collection<? extends E> c) {
+    this();
+    addAll(c);
+}
+public TreeSet(SortedSet<E> s) {
+    this(s.comparator());
+    addAll(s);
+}
+```
+
+通过构造方法可以看出，TreeSet是通过 TreeMap来实现的。
+
+**TreeSet其它方法**
+
+TreeSet其它方法也是基于TreeMap的方法实现的。
 
