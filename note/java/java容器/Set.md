@@ -10,7 +10,7 @@ Set采用Map实现，无法通过下标来取元素。只能通过iterator或者
 
 #### 2.HashSet
 
-![](F:\__study__\hulianwang\study\note\java\java容器\img\hashset01.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/img/hashset01.png)
 
 **HashSet实现**
 
@@ -130,7 +130,7 @@ private void readObject(java.io.ObjectInputStream s)
 
 #### 3.LinkedHashSet
 
-![](F:\__study__\hulianwang\study\note\java\java容器\img\linkedHashSet01.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/img/linkedHashSet01.png)
 
 **LinkedHashSet特点**
 
