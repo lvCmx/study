@@ -130,3 +130,36 @@ private void readObject(java.io.ObjectInputStream s)
 
 #### 3.LinkedHashSet
 
+![](F:\__study__\hulianwang\study\note\java\java容器\img\linkedHashSet01.png)
+
+**LinkedHashSet特点**
+
+- LinkedHashSet是线程不安全的，如果想保证线程安全，则通过Collections.synchronizedSet。
+- LinkedHashSet底层采用LinkedHashMap。
+- LinkedHashSet可以保证元素的添加顺序。
+
+**LinkedHashSet构造方法**
+
+```java
+public LinkedHashSet(int initialCapacity, float loadFactor) {
+    super(initialCapacity, loadFactor, true);
+}
+public LinkedHashSet(int initialCapacity) {
+    super(initialCapacity, .75f, true);
+}
+public LinkedHashSet() {
+    super(16, .75f, true);
+}
+// 通过调用AbstractCollection中的addAll将元素添加到set中
+public LinkedHashSet(Collection<? extends E> c) {
+    super(Math.max(2*c.size(), 11), .75f, true);
+    addAll(c);
+}
+// 这四个构造方法是通过HashSet中的这个构造方法来实现的初始化的
+HashSet(int initialCapacity, float loadFactor, boolean dummy) {
+    map = new LinkedHashMap<>(initialCapacity, loadFactor);
+}
+```
+
+
+
