@@ -331,19 +331,299 @@ public boolean contains(Object o) {
 
 #### 3.LinkedBlockingQueue
 
+![](F:\__study__\hulianwang\study\note\java\java容器\img\linkedBlockingQueue01.png)
 
+LinkedBlockingQueue是基于链表的无界阻塞队列，它最多可以存放Integer.MAX_VALUE个元素
+
+LinkedBlockingQueue内定义一个内部类，Node
+
+```java
+static class Node<E> {
+    E item;
+    Node<E> next;
+    Node(E x) { item = x; }
+}
+```
+
+**源码主要成员**
+
+```java
+// 链表的界线，如果没有指定，则Integer.MAX_VALUE 
+private final int capacity;
+// 当前链表节点个数
+private final AtomicInteger count = new AtomicInteger();
+// 头节点
+transient Node<E> head;
+// 尾部结点
+private transient Node<E> last;
+
+/** 获取并移除元素时使用的锁，如：take, poll, etc */
+private final ReentrantLock takeLock = new ReentrantLock();
+
+/** 当队列没有数据时用于挂起执行删除的线程 */
+private final Condition notEmpty = takeLock.newCondition();
+
+/** 添加元素时使用的锁，如: put, offer, etc */
+private final ReentrantLock putLock = new ReentrantLock();
+
+/** 当队列数据已满时用于挂起执行添加的线程  */
+private final Condition notFull = putLock.newCondition();
+```
+
+**构造方法**
+
+```java
+public LinkedBlockingQueue() {
+    this(Integer.MAX_VALUE);
+}
+
+// 指定边界
+public LinkedBlockingQueue(int capacity) {
+    if (capacity <= 0) throw new IllegalArgumentException();
+    this.capacity = capacity;
+    last = head = new Node<E>(null);
+}
+
+public LinkedBlockingQueue(Collection<? extends E> c) {
+    this(Integer.MAX_VALUE);
+    final ReentrantLock putLock = this.putLock;
+    putLock.lock(); // Never contended, but necessary for visibility
+    try {
+        int n = 0;
+        for (E e : c) {
+            if (e == null)
+                throw new NullPointerException();
+            if (n == capacity)
+                throw new IllegalStateException("Queue full");
+            enqueue(new Node<E>(e));
+            ++n;
+        }
+        count.set(n);
+    } finally {
+        putLock.unlock();
+    }
+}
+```
+
+**主要方法**
+
+```java
+public void put(E e) throws InterruptedException {
+    if (e == null) throw new NullPointerException();
+    int c = -1;
+    Node<E> node = new Node<E>(e);
+    final ReentrantLock putLock = this.putLock;
+    final AtomicInteger count = this.count;
+    putLock.lockInterruptibly();
+    try {
+        // 如果已经满了
+        while (count.get() == capacity) {
+            notFull.await();
+        }
+        enqueue(node);
+        c = count.getAndIncrement();
+        // 唤醒那些因队列满而阻塞的队列
+        if (c + 1 < capacity)
+            notFull.signal();
+    } finally {
+        putLock.unlock();
+    }
+    if (c == 0)
+        signalNotEmpty();
+}
+
+// 
+public boolean offer(E e, long timeout, TimeUnit unit)
+    throws InterruptedException {
+
+    if (e == null) throw new NullPointerException();
+    long nanos = unit.toNanos(timeout);
+    int c = -1;
+    final ReentrantLock putLock = this.putLock;
+    final AtomicInteger count = this.count;
+    putLock.lockInterruptibly();
+    try {
+        while (count.get() == capacity) {
+            if (nanos <= 0)
+                return false;
+            // 等待指定的时间
+            nanos = notFull.awaitNanos(nanos);
+        }
+        enqueue(new Node<E>(e));
+        c = count.getAndIncrement();
+        if (c + 1 < capacity)
+            notFull.signal();
+    } finally {
+        putLock.unlock();
+    }
+    if (c == 0)
+        signalNotEmpty();
+    return true;
+}
+
+// 
+public boolean offer(E e) {
+    if (e == null) throw new NullPointerException();
+    final AtomicInteger count = this.count;
+    if (count.get() == capacity)
+        return false;
+    int c = -1;
+    Node<E> node = new Node<E>(e);
+    final ReentrantLock putLock = this.putLock;
+    putLock.lock();
+    try {
+        // 只有在满足添加条件的时候添加
+        if (count.get() < capacity) {
+            enqueue(node);
+            c = count.getAndIncrement();
+            if (c + 1 < capacity)
+                notFull.signal();
+        }
+    } finally {
+        putLock.unlock();
+    }
+    if (c == 0)
+        signalNotEmpty();
+    return c >= 0;
+}
+private void enqueue(Node<E> node) {
+    last = last.next = node;
+}
+-----------------------------------------------
+// 取出元素，会阻塞
+public E take() throws InterruptedException {
+    E x;
+    int c = -1;
+    final AtomicInteger count = this.count;
+    final ReentrantLock takeLock = this.takeLock;
+    takeLock.lockInterruptibly();
+    try {
+        // 如果没有元素则阻塞
+        while (count.get() == 0) {
+            notEmpty.await();
+        }
+        x = dequeue();
+        c = count.getAndDecrement();
+        if (c > 1)
+            notEmpty.signal();
+    } finally {
+        takeLock.unlock();
+    }
+    if (c == capacity)
+        signalNotFull();
+    return x;
+}
+
+public E poll(long timeout, TimeUnit unit) throws InterruptedException {
+    E x = null;
+    int c = -1;
+    long nanos = unit.toNanos(timeout);
+    final AtomicInteger count = this.count;
+    final ReentrantLock takeLock = this.takeLock;
+    takeLock.lockInterruptibly();
+    try {
+        while (count.get() == 0) {
+            if (nanos <= 0)
+                return null;
+            nanos = notEmpty.awaitNanos(nanos);
+        }
+        x = dequeue();
+        c = count.getAndDecrement();
+        if (c > 1)
+            notEmpty.signal();
+    } finally {
+        takeLock.unlock();
+    }
+    if (c == capacity)
+        signalNotFull();
+    return x;
+}
+// 获取并移除此队列的头，如果此队列为空，则返回 null。
+public E poll() {
+    final AtomicInteger count = this.count;
+    if (count.get() == 0)
+        return null;
+    E x = null;
+    int c = -1;
+    final ReentrantLock takeLock = this.takeLock;
+    takeLock.lock();
+    try {
+        if (count.get() > 0) {
+            x = dequeue();
+            c = count.getAndDecrement();
+            if (c > 1)
+                notEmpty.signal();
+        }
+    } finally {
+        takeLock.unlock();
+    }
+    if (c == capacity)
+        signalNotFull();
+    return x;
+}
+private E dequeue() {
+    // assert takeLock.isHeldByCurrentThread();
+    // assert head.item == null;
+    Node<E> h = head;
+    Node<E> first = h.next;
+    h.next = h; // help GC
+    head = first;
+    E x = first.item;
+    first.item = null;
+    return x;
+}
+-----------------------------------------------
+// 双重加锁
+public boolean remove(Object o) {
+    if (o == null) return false;
+    fullyLock();
+    try {
+        for (Node<E> trail = head, p = trail.next;
+             p != null;
+             trail = p, p = p.next) {
+            if (o.equals(p.item)) {
+                unlink(p, trail);
+                return true;
+            }
+        }
+        return false;
+    } finally {
+        fullyUnlock();
+    }
+}
+void fullyLock() {
+    putLock.lock();
+    takeLock.lock();
+}
+void fullyUnlock() {
+    takeLock.unlock();
+    putLock.unlock();
+}
+```
 
 #### 4.PriorityBlockingQueue
 
+
+
 #### 5.SynchronousQueue
+
+
 
 #### 6.DelayQueue
 
+
+
 #### 7.ArrayDeque
+
+
 
 #### 8.LinkedBlockingDeque
 
+
+
 #### 9.ConcurrentLinkedQueue
+
+
 
 
 
