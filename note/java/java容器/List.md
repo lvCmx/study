@@ -794,7 +794,7 @@ Vector是ArrayList的线程安全版，也是基于数组来实现的。
 
 栈继承了Vector类，栈是一种先进后出的数据结构，可以用在方法调用中。
 
-![](F:\__study__\hulianwang\study\note\java\java容器\img\stack01.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/img/stack01.png)
 
 **主要方法**
 
