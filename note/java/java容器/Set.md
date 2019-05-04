@@ -167,7 +167,7 @@ HashSet(int initialCapacity, float loadFactor, boolean dummy) {
 
 #### 4.SortedSet
 
-![](F:\__study__\hulianwang\study\note\java\java容器\img\sortedSet01.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/img/sortedSet01.png)
 
 **SortedSet特点**
 
@@ -176,7 +176,7 @@ HashSet(int initialCapacity, float loadFactor, boolean dummy) {
 
 #### 5.TreeSet
 
-![](F:\__study__\hulianwang\study\note\java\java容器\img\treeSet01.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/img/treeSet01.png)
 
 **TreeSet特点**
 
