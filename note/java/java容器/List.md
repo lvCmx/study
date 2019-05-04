@@ -783,3 +783,61 @@ private void readObject(java.io.ObjectInputStream s)
         linkLast((E)s.readObject());
 }
 ```
+
+#### 4.Vector
+
+Vector是ArrayList的线程安全版，也是基于数组来实现的。
+
+它的get/set/remove等方法都添加了synchronized关键字，表示要使用时是以串行的方式，所以能保证线程的安全。
+
+#### 5.Stack
+
+栈继承了Vector类，栈是一种先进后出的数据结构，可以用在方法调用中。
+
+![](F:\__study__\hulianwang\study\note\java\java容器\img\stack01.png)
+
+**主要方法**
+
+```java
+// 向栈顶添加一个元素,直接添加到数组尾部。
+public E push(E item) {
+    addElement(item);
+
+    return item;
+}
+
+// 弹出栈顶元素
+public synchronized E pop() {
+    E       obj;
+    int     len = size();
+
+    obj = peek();
+    removeElementAt(len - 1);
+
+    return obj;
+}
+
+// 返回栈顶元素
+public synchronized E peek() {
+    int     len = size();
+
+    if (len == 0)
+        throw new EmptyStackException();
+    return elementAt(len - 1);
+}
+
+//
+public boolean empty() {
+    return size() == 0;
+}
+
+// 搜索
+public synchronized int search(Object o) {
+    int i = lastIndexOf(o);
+
+    if (i >= 0) {
+        return size() - i;
+    }
+    return -1;
+}
+```
