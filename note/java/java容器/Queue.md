@@ -1,4 +1,4 @@
-### Queue队列
+Queue队列
 
 #### 1.Queue接口
 
@@ -602,6 +602,65 @@ void fullyUnlock() {
 ```
 
 #### 4.PriorityBlockingQueue
+
+![](F:\__study__\hulianwang\study\note\java\java容器\img\priorityBlockingQueue01.png)
+
+PriorityBlockingQueue是一个基于优先级堆的无界的并发安全的优先级队列（FIFO），队列的元素按照其自然顺序进行排序，或者根据构造队列时提供的Comparator进行排序，具体取决于所用的构造方法。
+
+PriorityBlockingQueue通过使用堆这种数据结构实现将队列中的元素按照某种排序规则进行排序，从而改变先进先出的队列顺序，提供开发者改变队列中元素的顺序的能力。队列中的元素必须是可比较的，即实现Comparable接口，或者在构建函数时提供可对队列元素进行比较的Comparator对象。
+
+**主要成员变量**
+
+```java
+// 默认队列的大小
+private static final int DEFAULT_INITIAL_CAPACITY = 11;
+// 最大队列的大小
+private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+// 存放队列元素的数组
+private transient Object[] queue;
+
+// 元素个数
+private transient int size;
+
+// 元素比较器
+private transient Comparator<? super E> comparator;
+
+private final ReentrantLock lock;
+
+// 因元素为空而阻塞的线程
+private final Condition notEmpty;
+
+// 扩容时用到的CAS
+private transient volatile int allocationSpinLock;
+
+// 序列化队列
+private PriorityQueue<E> q;
+```
+
+**构造方法**
+
+```java
+// 默认初始大小为11
+public PriorityBlockingQueue() {
+    this(DEFAULT_INITIAL_CAPACITY, null);
+}
+
+// 指定默认初始大小
+public PriorityBlockingQueue(int initialCapacity) {
+    this(initialCapacity, null);
+}
+
+// 指定初始大小和比较器
+public PriorityBlockingQueue(int initialCapacity,
+                             Comparator<? super E> comparator) {
+    if (initialCapacity < 1)
+        throw new IllegalArgumentException();
+    this.lock = new ReentrantLock();
+    this.notEmpty = lock.newCondition();
+    this.comparator = comparator;
+    this.queue = new Object[initialCapacity];
+}
+```
 
 
 
