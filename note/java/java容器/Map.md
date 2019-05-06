@@ -53,7 +53,7 @@ transient int size;
 // 记录修改的次数，主要用于在迭代的过程中，突然有别的线程对map进行插入或删除操作。用于快速失败机制。
 transient int modCount;
 
-// 下一个要调整大小的大小值 (capacity * load factor).
+// 临界值 当实际大小 (capacity*load factor)超过临界值时，会进行扩容
 int threshold;
 
 // 哈希表的加载因子。
@@ -209,6 +209,36 @@ final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
     return null;
 }
 
+// 获取元素
+public V get(Object key) {
+    Node<K,V> e;
+    return (e = getNode(hash(key), key)) == null ? null : e.value;
+}
+// 传入key的hash值和key
+final Node<K,V> getNode(int hash, Object key) {
+    Node<K,V>[] tab; Node<K,V> first, e; int n; K k;
+    // table不为空 && table的长度大于0 && 查找到table存在该下标
+    if ((tab = table) != null && (n = tab.length) > 0 &&
+            (first = tab[(n - 1) & hash]) != null) {
+        // 如果链表第一个元素就是所要查找的，则直接返回
+        if (first.hash == hash && // always check first node
+                ((k = first.key) == key || (key != null && key.equals(k))))
+            return first;
+        // 链表存在next
+        if ((e = first.next) != null) {
+            if (first instanceof TreeNode)
+                return ((TreeNode<K,V>)first).getTreeNode(hash, key);
+            // 遍布next，查找满足条件的链表节点
+            do {
+                if (e.hash == hash &&
+                        ((k = e.key) == key || (key != null && key.equals(k))))
+                    return e;
+            } while ((e = e.next) != null);
+        }
+    }
+    return null;
+}
+
 // 扩容
 final Node<K,V>[] resize() {
     Node<K,V>[] oldTab = table;
@@ -216,10 +246,12 @@ final Node<K,V>[] resize() {
     int oldThr = threshold;
     int newCap, newThr = 0;
     if (oldCap > 0) {
+        // 如果oldCap已经超过限制最大值，则直接将threshold设置为最大值
         if (oldCap >= MAXIMUM_CAPACITY) {
             threshold = Integer.MAX_VALUE;
             return oldTab;
         }
+        // 如果当前hash桶数组的长度在扩容后仍然小于最大容量 并且oldCap大于默认值16
         else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
                 oldCap >= DEFAULT_INITIAL_CAPACITY)
             newThr = oldThr << 1; // double threshold
@@ -227,6 +259,7 @@ final Node<K,V>[] resize() {
     else if (oldThr > 0) // initial capacity was placed in threshold
         newCap = oldThr;
     else {               // zero initial threshold signifies using defaults
+        // 如果table长度为0，并且threshold长度为0时，则按默认的初始大小。
         newCap = DEFAULT_INITIAL_CAPACITY;
         newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
     }
@@ -237,13 +270,18 @@ final Node<K,V>[] resize() {
     }
     threshold = newThr;
     @SuppressWarnings({"rawtypes","unchecked"})
+    // 创建一个新的大小为threshold 2 倍的空间
     Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
     table = newTab;
+    // 源数组存在元素
     if (oldTab != null) {
+        // 下面的过程是将旧数组中的元素复制到新数组中，元素的位置会发生变化 
         for (int j = 0; j < oldCap; ++j) {
             Node<K,V> e;
             if ((e = oldTab[j]) != null) {
+                // 如果j位置有节点元素，则取出该元素e，并且把数组中的该位置的node节点赋值null
                 oldTab[j] = null;
+                // 如果下个节点没有数据了（也就是链表的尾部），则把e,放在newTab位置为e.hash & (newCap - 1) 的地方
                 if (e.next == null)
                     newTab[e.hash & (newCap - 1)] = e;
                 else if (e instanceof TreeNode)
@@ -283,13 +321,9 @@ final Node<K,V>[] resize() {
     }
     return newTab;
 }
-
-
-
-
 ```
 
-
+#### LinkedHashMap
 
 
 

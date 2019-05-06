@@ -682,11 +682,99 @@ public PriorityBlockingQueue(int initialCapacity,
 
 #### 9.ConcurrentLinkedQueue
 
+ConcurrentLinkedQueue是线程安全的无界非阻塞队列，其底层数据结构使用单向链表实现，对于入队和出队操作使用CAS来实现线程安全。
 
+新的元素插入到队列的尾部，队列获取操作从队列头部获得元素，此队列不允许使用null元素。
 
+![](F:\__study__\hulianwang\study\note\java\java容器\img\concurrentLinkedQueue01.png)
 
+**Node节点**
 
+```java
+在Node节点内部则维护一个使用volatile修饰的变量item，用来存放节点的值；next用来存放链表的下一个节点，从而链接为一个单向无界链表。
+private static class Node<E> {
+    volatile E item;
+    volatile Node<E> next;
+｝
+```
 
+**主要成员变量**
 
+```java
+// 链表的头节点，取元素时从头部取 
+private transient volatile Node<E> head;
+// 链表尾节点，插入元素时从尾部插入
+private transient volatile Node<E> tail;
+```
 
+**主要方法的实现**
 
+1、offer：在队列未尾添加一个元素，如果传递的参数是null则抛出NPE异常。
+
+```java
+public boolean offer(E e) {
+    // e为null则抛出空指针异常
+    checkNotNull(e);
+    // 将当前E元素封装成Node节点
+    final Node<E> newNode = new Node<E>(e);
+	// 从尾部节点进行插入元素，这个for循环没有退出条件，直到获取CAS成功
+    for (Node<E> t = tail, p = t;;) {
+        Node<E> q = p.next;
+        // q==null 说明p是最后一个节点
+        if (q == null) {
+            // 使用CAS设置p节点的next节点
+            if (p.casNext(null, newNode)) {
+                // CAS成功，则说明新节点已经插入到了尾部，然后设置当前尾部节点。
+                // 1,3,5,,,个节点为尾节点
+                if (p != t) 
+                    casTail(t, newNode);  // Failure is OK.
+                return true;
+            }
+            // Lost CAS race to another thread; re-read next
+        }
+        else if (p == q)
+            // 多线程操作时，由于poll操作移除元素后可能会把head变为自引用，也就是head的next变成了head，所以这里需要重新找新的head.
+            p = (t != (t = tail)) ? t : head;
+        else
+            // 寻找尾节点
+            p = (p != t && t != (t = tail)) ? t : q;
+    }
+}
+```
+
+2、add操作是在链表未尾添加一个元素，其实在内部调用的还是offer操作。
+
+```java
+public boolean add(E e) {
+    return offer(e);
+}
+```
+
+3、poll操作是在队列头部获取并移除一个元素，如果队列为空则返回null.
+
+```java
+public E poll() {
+    restartFromHead:
+    for (;;) {
+        for (Node<E> h = head, p = h, q;;) {
+            E item = p.item;
+
+            if (item != null && p.casItem(item, null)) {
+                // Successful CAS is the linearization point
+                // for item to be removed from this queue.
+                if (p != h) // hop two nodes at a time
+                    updateHead(h, ((q = p.next) != null) ? q : p);
+                return item;
+            }
+            else if ((q = p.next) == null) {
+                updateHead(h, p);
+                return null;
+            }
+            else if (p == q)
+                continue restartFromHead;
+            else
+                p = q;
+        }
+    }
+}
+```
