@@ -325,7 +325,7 @@ final Node<K,V>[] resize() {
 
 #### LinkedHashMap
 
-![](F:\__study__\hulianwang\study\note\java\java容器\img\linkedHashMap01.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/img/linkedHashMap01.png)
 
 前面介绍了HashMap是无序的一个key/value对，而LinkedHashMap是基于双向链表并且保持插入顺序的。
 
@@ -557,7 +557,7 @@ void afterNodeInsertion(boolean evict) { // possibly remove eldest
 
 #### SortedMap与TreeMap
 
-![1557821623161](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\1557821623161.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/img/treeMap01.png)
 
 TreeMap是一个支持排序的HashMap，它存放的key元素需要实现Comparable接口，或者是自定义排序Comparator。
 
