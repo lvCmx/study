@@ -1,5 +1,6 @@
 # Java学习笔记
 **Java基础**  
+[推荐书单下载](https://github.com/lvCmx/study/blob/master/note/java/%E4%B9%A6%E5%8D%95/%E4%B9%A6%E5%8D%95.md)  
 
 **Java容器**  
 [List集合详解](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/List.md)  
