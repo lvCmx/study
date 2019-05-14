@@ -325,5 +325,239 @@ final Node<K,V>[] resize() {
 
 #### LinkedHashMap
 
+![](F:\__study__\hulianwang\study\note\java\java容器\img\linkedHashMap01.png)
 
+前面介绍了HashMap是无序的一个key/value对，而LinkedHashMap是基于双向链表并且保持插入顺序的。
+
+LinkedHashMap的特点：
+
+- 保存插入顺序。
+- key/value允许为null
+- 线程不安全的
+- Key重复会覆盖
+
+**Entity对象**
+
+```java
+static class Entry<K,V> extends HashMap.Node<K,V> {
+    Entry<K,V> before, after;
+    Entry(int hash, K key, V value, Node<K,V> next) {
+        super(hash, key, value, next);
+    }
+}
+// 可以看出，它包含before与after两个方向的指针，因此链表是一个双向的链表。
+```
+
+**成员变量**
+
+```java
+// 链表头节点
+transient LinkedHashMap.Entry<K,V> head; 
+
+// 链表尾接点
+transient LinkedHashMap.Entry<K,V> tail;
+
+// 指定LinkedHashMap的迭代顺序
+// true：则表示按照基于访问的顺序来排列，意思就是最近使用的entry，放在链表的最末尾。
+// false：则表示按照插入顺序。
+final boolean accessOrder;
+// accessOrder的final关键字，说明我们要在构造方法里给它初始化
+```
+
+**构造方法**
+
+```java
+public LinkedHashMap(int initialCapacity, float loadFactor) {
+    super(initialCapacity, loadFactor);
+    accessOrder = false;
+}
+public LinkedHashMap(int initialCapacity) {
+    super(initialCapacity);
+    accessOrder = false;
+}
+public LinkedHashMap() {
+    super();
+    accessOrder = false;
+}
+public LinkedHashMap(Map<? extends K, ? extends V> m) {
+    super();
+    accessOrder = false;
+    putMapEntries(m, false);
+}
+// 可以指定accessOrder
+public LinkedHashMap(int initialCapacity,
+                     float loadFactor,
+                     boolean accessOrder) {
+    super(initialCapacity, loadFactor);
+    this.accessOrder = accessOrder;
+}
+```
+
+**get方法**
+
+```java
+public V get(Object key) {
+    Node<K,V> e;
+    // 如果没有找到，则返回null
+    if ((e = getNode(hash(key), key)) == null)
+        return null;
+    if (accessOrder)
+        afterNodeAccess(e);
+    return e.value;
+}
+final Node<K,V> getNode(int hash, Object key) {
+    Node<K,V>[] tab; Node<K,V> first, e; int n; K k;
+    if ((tab = table) != null && (n = tab.length) > 0 &&
+            (first = tab[(n - 1) & hash]) != null) {
+        // 首先检查第一个节点是不是要查找的节点。
+        if (first.hash == hash && // always check first node
+                ((k = first.key) == key || (key != null && key.equals(k))))
+            return first;
+        // first的下个元素是否是需要寻找的元素。
+        if ((e = first.next) != null) {
+            if (first instanceof TreeNode)
+                return ((TreeNode<K,V>)first).getTreeNode(hash, key);
+            // 循环查找
+            do {
+                if (e.hash == hash &&
+                        ((k = e.key) == key || (key != null && key.equals(k))))
+                    return e;
+            } while ((e = e.next) != null);
+        }
+    }
+    return null;
+}
+//accessOrder 则表示按照基于访问的顺序来排列，意思就是最近使用的entry，放在链表的最末尾。
+// afterNodeAccess(e) 就是基于访问的顺序排列的关键
+void afterNodeAccess(HashMap.Node<K,V> e) { // move node to last
+    LinkedHashMap.Entry<K,V> last;
+    /// 将元素移到最后面，如果最后面一个元素是要移动的元素，则不再需要移动。
+    if (accessOrder && (last = tail) != e) {
+        // //将e赋值临时节点p， b是e的前一个节点， a是e的后一个节点
+        LinkedHashMap.Entry<K,V> p =
+                (LinkedHashMap.Entry<K,V>)e, b = p.before, a = p.after;
+        p.after = null;
+        // b为空说明 e 前面没有元素
+        if (b == null)
+            head = a;
+        else
+            b.after = a;
+        // 说明e后面还有元素
+        if (a != null)
+            a.before = b;
+        else
+            last = b;
+        // 将元素放到最后
+        if (last == null)
+            head = p;
+        else {
+            p.before = last;
+            last.after = p;
+        }
+        tail = p;
+        ++modCount;
+    }
+}
+```
+
+**put方法**
+
+```java
+public V put(K key, V value) {
+    return putVal(hash(key), key, value, false, true);
+}
+
+// put使用的是LinkedHashMap中的方法
+final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
+               boolean evict) {
+    Node<K,V>[] tab; Node<K,V> p; int n, i;
+    if ((tab = table) == null || (n = tab.length) == 0)
+        n = (tab = resize()).length;
+    if ((p = tab[i = (n - 1) & hash]) == null)
+        tab[i] = newNode(hash, key, value, null);
+    else {
+        Node<K,V> e; K k;
+        if (p.hash == hash &&
+            ((k = p.key) == key || (key != null && key.equals(k))))
+            e = p;
+        else if (p instanceof TreeNode)
+            e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+        else {
+            for (int binCount = 0; ; ++binCount) {
+                if ((e = p.next) == null) {
+                    p.next = newNode(hash, key, value, null);
+                    if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                        treeifyBin(tab, hash);
+                    break;
+                }
+                if (e.hash == hash &&
+                    ((k = e.key) == key || (key != null && key.equals(k))))
+                    break;
+                p = e;
+            }
+        }
+        if (e != null) { // existing mapping for key
+            V oldValue = e.value;
+            if (!onlyIfAbsent || oldValue == null)
+                e.value = value;
+            // 由LinkedHashMap提供具体实现
+            afterNodeAccess(e);
+            return oldValue;
+        }
+    }
+    ++modCount;
+    if (++size > threshold)
+        resize();
+    // 由LinkedHashMap提供具体实现
+    afterNodeInsertion(evict);
+    return null;
+}
+// LinkedHashMap将其中newNode方法以及之前设置下的钩子方法afterNodeAccess和afterNodeInsertion进行了重写
+Node<K,V> newNode(int hash, K key, V value, Node<K,V> e) {
+    // new的Entry是LinkedHashMap自己的双向链表，并且将元素添加到最后面。
+    LinkedHashMap.Entry<K,V> p =
+        new LinkedHashMap.Entry<K,V>(hash, key, value, e);
+    linkNodeLast(p);
+    return p;
+}
+// move node to last
+void afterNodeAccess(Node<K,V> e) { 
+    LinkedHashMap.Entry<K,V> last;
+    if (accessOrder && (last = tail) != e) {
+        LinkedHashMap.Entry<K,V> p =
+                (LinkedHashMap.Entry<K,V>)e, b = p.before, a = p.after;
+        p.after = null;
+        if (b == null)
+            head = a;
+        else
+            b.after = a;
+        if (a != null)
+            a.before = b;
+        else
+            last = b;
+        if (last == null)
+            head = p;
+        else {
+            p.before = last;
+            last.after = p;
+        }
+        tail = p;
+        ++modCount;
+    }
+}
+// 插入后把最老的Entry删除，不过removeEldestEntry总是返回false，所以不会删除，估计又是一个钩子方法给子类用的
+void afterNodeInsertion(boolean evict) { // possibly remove eldest
+    LinkedHashMap.Entry<K,V> first;
+    if (evict && (first = head) != null && removeEldestEntry(first)) {
+        K key = first.key;
+        removeNode(hash(key), key, null, false, true);
+    }
+}
+```
+
+#### SortedMap与TreeMap
+
+![1557821623161](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\1557821623161.png)
+
+TreeMap是一个支持排序的HashMap，它存放的key元素需要实现Comparable接口，或者是自定义排序Comparator。
 
