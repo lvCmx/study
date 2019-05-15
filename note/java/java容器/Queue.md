@@ -1,4 +1,4 @@
-Queue队列
+建议参考：java并发编程之美第七章
 
 #### 1.Queue接口
 
@@ -670,7 +670,114 @@ public PriorityBlockingQueue(int initialCapacity,
 
 #### 6.DelayQueue
 
+DelayQueue并发队列是一个无界阻塞延迟队列，队列中的每个元素都有一个过期时间，当从队列获取元素时，只有过期元素才会出队列，队列头元素是最快要过期的元素。
 
+DelayQueue内部使用PriorityQueue存放数据，使用ReentrantLock实现线程同步，另外，队列里面的元素要实现Delayed接口，由于每个元素都有一个过期时间，所以要实现获知当前元素剩下多少时间就过期了的接口，由于内部使用优先级队列来实现，所以要实现元素之间相互比较的接口。
+
+```java
+public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
+    implements BlockingQueue<E> {
+
+    private final transient ReentrantLock lock = new ReentrantLock();
+    private final PriorityQueue<E> q = new PriorityQueue<E>();}
+```
+
+**主要成员变量**
+
+```java
+// 并发访问锁
+private final transient ReentrantLock lock = new ReentrantLock();
+// DelayQueue是基于PriorityQueue实现的
+private final PriorityQueue<E> q = new PriorityQueue<E>();
+
+/**
+ * 使用基于Leader-Follower模式的变体，用于尽量减少不必要的线程等待。当一个线程调用队列的take方法变为leader线程后，它会调用条件变量available。awaitNanos(dealy)等待delay时间，但是其他线程(follwer线程)则会调用available.await()进行无限等待。leader线程延迟时间过期后，会退出take方法，并通过调用available.signal()唤醒一个follwer线程。
+ */
+private Thread leader = null;
+private final Condition available = lock.newCondition();
+```
+
+**主要方法**
+
+```java
+// 插入元素
+public boolean offer(E e) {
+    final ReentrantLock lock = this.lock;
+    lock.lock();
+    try {
+        q.offer(e); // 调用的PriorityQueue.offer
+        if (q.peek() == e) {
+            leader = null;
+            available.signal();
+        }
+        return true;
+    } finally {
+        lock.unlock();
+    }
+}
+```
+
+首先获取独占锁，然后添加元素到优先级队列，由于q是优先级队列，所以添加元素后，调用q.peek()方法返回的并不一定是当前添加的元素。如果判断为true，则说明当前元素e是最先将过期的，那么重置leader线程为null，这时候激活avaliable变量条件队列里面的一个线程，告诉它队列里面有元素了。
+
+```java
+// 获取并移除队列里面延迟时间过期的元素，如果队列里面没有过期元素则等待。
+public E take() throws InterruptedException {
+    final ReentrantLock lock = this.lock;
+    lock.lockInterruptibly();
+    try {
+        for (;;) {
+            // 获取但不移除队首元素
+            E first = q.peek();
+            if (first == null)
+                // 将当前线程放到阻塞队列
+                available.await();
+            else {
+                long delay = first.getDelay(NANOSECONDS);
+                // 说明已经过期
+                if (delay <= 0)
+                    return q.poll();
+                first = null; // don't retain ref while waiting
+                // leader不为null则说明其他线程也在执行take，则把该线程放入条件队列
+                if (leader != null)
+                    available.await();
+                else {
+                    // leader为null，则选取当前线程A为leader线程
+                    Thread thisThread = Thread.currentThread();
+                    leader = thisThread;
+                    try {
+                        // 指定该方法等待信号的的最大时间
+                        available.awaitNanos(delay);
+                    } finally {
+                        if (leader == thisThread)
+                            leader = null;
+                    }
+                }
+            }
+        }
+    } finally {
+        if (leader == null && q.peek() != null)
+            available.signal();
+        lock.unlock();
+    }
+}
+```
+
+```java
+//获取并移除队头过期元素，如果没有过期元素则返回null.
+public E poll() {
+    final ReentrantLock lock = this.lock;
+    lock.lock();
+    try {
+        E first = q.peek();
+        if (first == null || first.getDelay(NANOSECONDS) > 0)
+            return null;
+        else
+            return q.poll();
+    } finally {
+        lock.unlock();
+    }
+}
+```
 
 #### 7.ArrayDeque
 
@@ -754,21 +861,47 @@ public boolean add(E e) {
 
 ```java
 public E poll() {
+    // 无限循环
     restartFromHead:
     for (;;) {
         for (Node<E> h = head, p = h, q;;) {
+            // 保存当前节点值
             E item = p.item;
-
+			// 当前节点有值，则通过CAS变为null
             if (item != null && p.casItem(item, null)) {
-                // Successful CAS is the linearization point
-                // for item to be removed from this queue.
+                // CAS成功则标记当前节点并从链表中删除
                 if (p != h) // hop two nodes at a time
                     updateHead(h, ((q = p.next) != null) ? q : p);
                 return item;
             }
+            // 当前队列为空则返回null
             else if ((q = p.next) == null) {
                 updateHead(h, p);
                 return null;
+            }
+            // 如果当前节点被自引用了，则重新寻找新的队列头节点。
+            else if (p == q)
+                continue restartFromHead;
+            else
+                p = q;
+        }
+    }
+}
+```
+
+poll方法在移除一个元素时，只是简单地使用CAS操作把当前节点的item值设置为null，然后通过重新设置头节点将该元素从队列里面移除，被移除的节点就成了独立节点，这个节点会在垃圾回收时被收掉。
+
+4、 peek操作：获取队列头部第一个元素（只获取不移除）如果队列为空则返回null。
+
+```java
+public E peek() {
+    restartFromHead:
+    for (;;) {
+        for (Node<E> h = head, p = h, q;;) {
+            E item = p.item;
+            if (item != null || (q = p.next) == null) {
+                updateHead(h, p);
+                return item;
             }
             else if (p == q)
                 continue restartFromHead;
@@ -779,3 +912,6 @@ public E poll() {
 }
 ```
 
+**总结**
+
+ConcurrentLinkedQueue的底层使用单向链表数据结构来保存队列元素，每个元素被包装成一个Node节点，队列是靠头、尾节点来维护的。
