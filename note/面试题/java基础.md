@@ -27,7 +27,7 @@ java接口中可以定义默认方法，如果A，B两个接口都有相同名�
 
 **5.HashMap**
 
-默认大小16，扩容2倍，单个链表长度达8转红黑树，少于6转链表。或者是总体链表结点个数达64转红黑树。
+默认大小16，扩容2倍，单个链表长度达到8转红黑树，少于6转链表。或者是总体链表结点个数达64转红黑树。
 
 **6.Object中的方法**
 
@@ -60,7 +60,7 @@ Thread类中有一个threadLocals，其实每个线程的本地变量不是存�
 
 **10.servlet是单例的并且是线程不安全的**
 
-要解释为什么Servlet为什么不是线程安全的，需要了解Servlet容器（即Tomcat）使如何响应HTTP请求的。
+要解释为什么Servlet为什么不是线程安全的，需要了解Servlet容器（即Tomcat）是如何响应HTTP请求的。
 
 当Tomcat接收到Client的HTTP请求时，Tomcat从线程池中取出一个线程，之后找到该请求对应的Servlet对象并进行初始化，之后调用service()方法。要注意的是每一个Servlet对象再Tomcat容器中只有一个实例对象，即是单例模式。如果多个HTTP请求请求的是同一个Servlet，那么着两个HTTP请求对应的线程将并发调用Servlet的service()方法。
 
@@ -78,6 +78,8 @@ ReetrantLock提供了公平与非公平锁的实现：
 
 - 公平锁：new ReetrantLock(true)
 - 非公平锁：new ReetrantLock(false) 默认是非公平锁。
+
+synchronized是非公平锁
 
 **独占锁与共享锁**
 
