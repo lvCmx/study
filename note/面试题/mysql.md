@@ -109,7 +109,7 @@ InnoDB的数据文件本身就是索引文件，InnoDB中，表数据文件本�
 
 一级索引（主键）：
 
-![](F:\__study__\hulianwang\study\note\面试题\resource\Innodb_primarykey.png)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/Innodb_primarykey.png)
 
 -  如果一个主键被定义了，那么这个主键就是作为聚焦索引。
 - 如果没有主键被定义，那么该表的第一个唯一非空索引被作为聚焦索引。
@@ -117,7 +117,7 @@ InnoDB的数据文件本身就是索引文件，InnoDB中，表数据文件本�
 
 二级索引：
 
-![](F:\__study__\hulianwang\study\note\面试题\resource\Innodb_secondary_key.png)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/Innodb_secondary_key.png)
 
 - 以所在的列建立二级索引，然后二级索引的data域则为主键。
 
@@ -125,7 +125,7 @@ InnoDB的数据文件本身就是索引文件，InnoDB中，表数据文件本�
 
 MyISAM索引文件和数据文件是分离的，索引文件仅保存记录所在页的指针，通过这些地址来读取页，进而读取被索引的行。
 
-![](F:\__study__\hulianwang\study\note\面试题\resource\myisam_primary_key.png)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/myisam_primary_key.png)
 
 **(5) InnoDB与MyISAM在B+Tree索引的区别**
 
