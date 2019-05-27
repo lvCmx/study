@@ -5,13 +5,13 @@
 &nbsp;&nbsp; <a href="#12">(2) 并发操作问题</a>  
 &nbsp;&nbsp; <a href="#13">(3) 事务的隔离级别</a>    
 **<a href="#2">2.数据库索引</a>**  
-	<a href="#21">(1) 索引的种类</a>    
-	<a href="#22">(2) B+Tree索引</a>    
-	<a href="#23">(3) InnoDB索引实现</a>    
-	<a href="#24">(4) MyISAM索引实现</a>    
-	<a href="#25">(5) InnoDB与MyISAM在B+Tree索引的区别</a>     
-	<a href="#26">(6) 为什么MySQL的索引要使用B+树而不是其它树形结构?比如B树？</a>     
-	<a href="#27">(7) 聚集索引与非聚集索引</a>      
+&nbsp;&nbsp; <a href="#21">(1) 索引的种类</a>    
+&nbsp;&nbsp; <a href="#22">(2) B+Tree索引</a>    
+&nbsp;&nbsp; <a href="#23">(3) InnoDB索引实现</a>    
+&nbsp;&nbsp; <a href="#24">(4) MyISAM索引实现</a>    
+&nbsp;&nbsp; <a href="#25">(5) InnoDB与MyISAM在B+Tree索引的区别</a>     
+&nbsp;&nbsp; <a href="#26">(6) 为什么MySQL的索引要使用B+树而不是其它树形结构?比如B树？</a>     
+&nbsp;&nbsp; <a href="#27">(7) 聚集索引与非聚集索引</a>      
 
 
 ### <a name="1">1.有关事务的面试题</a>
