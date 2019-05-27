@@ -12,6 +12,11 @@
 &nbsp;&nbsp; <a href="#25">(5) InnoDB与MyISAM在B+Tree索引的区别</a>     
 &nbsp;&nbsp; <a href="#26">(6) 为什么MySQL的索引要使用B+树而不是其它树形结构?比如B树？</a>     
 &nbsp;&nbsp; <a href="#27">(7) 聚集索引与非聚集索引</a>      
+**<a href="#3">3.Mysql存储引擎</a>**    
+&nbsp;&nbsp; <a href="#31">(1) InnoDB存储引擎：Mysql的默认事务型引擎</a>  
+&nbsp;&nbsp; <a href="#32">(2) MyISAM</a>   
+&nbsp;&nbsp; <a href="#33">(3) MEMORY</a>    
+&nbsp;&nbsp; <a href="#34">(4) InnoDB与MyISAM区别</a>   
 
 
 ### <a name="1">1.有关事务的面试题</a>
@@ -163,7 +168,7 @@ MyISAM索引文件和数据文件是分离的，索引文件仅保存记录所�
 
 有关：show table status like 'user'查看user表的相关信息：
 
-**(1) InnoDB存储引擎：Mysql的默认事务型引擎**
+**<a name="31">(1) InnoDB存储引擎：Mysql的默认事务型引擎</a>**
 
 InnoDB使用的是行级锁，但实际是有限制的，只有在你增删改查时匹配的条件字段带有索引时，InnoDB才会使用行级锁，在你增删改查时匹配的条件字段不带有索引时。InnoDB使用的将是表级锁。
 
@@ -175,7 +180,7 @@ InnoDB是新版本mysql的默认引擎，支持事务处理和外键，但是其
 
 使用engine=innodb default charset=utf-8;
 
-**(2) MyISAM**
+**<a name="32">(2) MyISAM</a>**
 
 MyISAM存储引擎是旧版本mysql的默认引擎，现在默认引擎是InnoDB，MyISAM引擎的主要特点就是快，没有事务处理操作，也不支持外键操作。适合insert与select的操作表。MyISAM存储引擎的表在数据库中，每一个表都被存放为三个以表名命名的物理文件。定义表结构.frm，存放表数据.myd和索引数据.myi。使用方法：engine=myisam default charset=utf-8;
 
@@ -185,7 +190,7 @@ MyISAM存储引擎是旧版本mysql的默认引擎，现在默认引擎是InnoDB
 - R-Tree索引
 - Full-Text索引,全文索引，它的存储结构也是B-Tree。主要是为了解决在我们需要用like查询的低效问题。
 
-**(3) MEMORY**
+**<a name="33">(3) MEMORY</a>**
 
 存储引擎使用存在内存中的内容来创建表，每个Memory表只实现对应一个磁盘文件，格式是.frm(只保存表结构，不保存内容)。Memory类型的表访问非常快，因为它的数据是放在内存中的，并且默认使用Hash索引，但是一旦服务关闭，表中的数据就会丢失掉。
 
@@ -195,7 +200,7 @@ CREATE TABLE tab_memory ENGINE=MEMORY
 
 Create index mem_hash using HASH on table_memory(city_id);
 
-**(4) InnoDB与MyISAM区别**
+**<a name="34">(4) InnoDB与MyISAM区别</a>**
 
  InnoDB和MyISAM是许多人在使用MySQL时最常用的两个表类型，MyISAM不支持事务处理等高级处理，而InnoDB类型支持。MyISAM类型的强调的是性能。其执行速度比InnoDB类型更快，但是不提供事务类型支持。而InnoDB提供事务支持和外键。
 
