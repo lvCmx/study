@@ -17,7 +17,7 @@
 &nbsp;&nbsp; <a href="#32">(2) MyISAM</a>   
 &nbsp;&nbsp; <a href="#33">(3) MEMORY</a>    
 &nbsp;&nbsp; <a href="#34">(4) InnoDB与MyISAM区别</a>   
-**<a href="#4">4.联合索引</a>**
+**<a href="#4">4.联合索引</a>**  
 &nbsp;&nbsp; <a href="#41">(1) 联合索引的规则</a>  
 &nbsp;&nbsp; <a href="#42">(2) 查辅助索引时需要查几次索引</a>  
 
