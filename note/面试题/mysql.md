@@ -17,7 +17,7 @@
 &nbsp;&nbsp; <a href="#32">(2) MyISAM</a>   
 &nbsp;&nbsp; <a href="#33">(3) MEMORY</a>    
 &nbsp;&nbsp; <a href="#34">(4) InnoDB与MyISAM区别</a>   
-**<a href="#4">4.联合索引</a>**
+**<a href="#4">4.联合索引</a>**  
 &nbsp;&nbsp; <a href="#41">(1) 联合索引的规则</a>  
 &nbsp;&nbsp; <a href="#42">(2) 查辅助索引时需要查几次索引</a>   
 **<a href="#5">5.Mysql读写分离</a>**    
@@ -263,3 +263,5 @@ MySQL_Poxy解决方案：
 ![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/mysql_poxy_write.png)
 
 ***读数据时：***通过这种方式，就可以比较完美的结果MySQL的同步延迟不可控问题。之所以所“比较完美”，是因为这种方案double了查询请求，对Master和Slave构成了额外的压力。不过由于Proxy与真实的Mysql Server采用连接池的方式连接，因此额外的压力还是可以接受的
+
+>>>>>>> 
