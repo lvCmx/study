@@ -1,10 +1,9 @@
 
-
-## <a name="2">2.Java内存区域与内存溢出异常</a>
+## <a name="2">Java内存区域详解</a>
 
 ### (1) 内存区域的划分
 
-![](F:\__study__\hulianwang\study\note\java\jvm\img\jvm.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/jvm/img/jvm.png)
 
 **程序计数器**
 
@@ -13,7 +12,7 @@
 
 **虚拟机栈**
 
-![](F:\__study__\hulianwang\study\note\java\jvm\img\jvm_stack.png)
+![](https://github.com/lvCmx/study/blob/master/note/java/jvm/img/jvm_stack.png)
 
 ​	虚拟机栈描述的是java方法执行的内存模型，每个方法在执行的同时都会创建一个栈帧，用于存储局部变量表、操作数栈、动态链接、方法出口等信息。每一个方法从调用直至执行完成的过程，就对应着一个栈帧在虚拟机栈中入栈到出栈的过程。  
 ​	在java虚拟机规范中，对这个区域规定了两种异常状况：如果线程请求的栈深度大于虚拟机所允许的深度，将抛出StackOverflowError异常；如果虚拟机栈可以动态扩展(当前大部分的java虚拟机栈都可以动态扩展，只不过java虚拟机规范中也允许固定长度的虚拟机栈)，如果扩展时无法申请到足够的内存，就会抛出OutOfMemoryError异常。
