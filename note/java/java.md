@@ -16,6 +16,8 @@
 [java并发编程](https://github.com/lvCmx/study/blob/master/note/java/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/index.md)  
 [java高并发编程详解](https://github.com/lvCmx/study/blob/master/note/java/java%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E8%AF%A6%E8%A7%A3/index.md)  
 **JVM**  
-
-
+[JVM内存区域详解](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
+[垃圾收集器](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
+[内存分配策略](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
+[虚拟机类加载机制](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
 **设计模式**  
