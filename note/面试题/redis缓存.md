@@ -20,7 +20,7 @@
 
 假设这么个场景，你有个操作，一个请求过来，后台需要操作mysql，半天查出来一个结果，耗时600ms。但是这个结果可能接下来几个小时都不会变了，或者变了也可以不用立即反馈给用户，那么此时咋办？
 
-![](https://github.com/lvCmx/study/tree/master/note/%E9%9D%A2%E8%AF%95%E9%A2%98/resource/缓存实现高性能.png)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/缓存实现高性能.png)
 
 缓存啊，折腾600ms查出来的结果，扔缓存里，一个key对应一个value，下次再有人查，别走mysql折腾600ms了。直接从缓存里，通过一个key查出来一个value，2ms搞定。性能提升300倍。
 
@@ -30,7 +30,7 @@
 
 Mysql数据是落到磁盘中的，而Redis数据是暂存在内存中的，所以Redis可以支持高并发。
 
-![](https://github.com/lvCmx/study/tree/master/note/面试题/resource/redis高并发.png)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis高并发.png)
 
 所以要是你有个系统，高峰期一秒钟过来的请求有1万，那一个mysql单机绝对会死掉。你这个时候就只能上缓存，把很多数据放缓存，别放mysql。缓存功能简单，说白了就是key-value式操作，单机支撑的并发量轻松一秒几万十几万，支撑高并发so easy。单机承载并发量是mysql单机的几十倍。
 
