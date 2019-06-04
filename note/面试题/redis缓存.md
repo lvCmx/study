@@ -67,7 +67,7 @@ Mysql数据是落到磁盘中的，而Redis数据是暂存在内存中的，所�
 
 ### redis的单线程模型
 
-![](https://github.com/lvCmx/study/tree/master/note/面试题/resource/01_redis单线程模型.jpg)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/01_redis单线程模型.jpg)
 
 **1).文件事件处理器**
 
@@ -335,7 +335,7 @@ public class LRUCache<K, V> {
 
 ### redis如何通过读写分离来承载读请求QPS超过10万+？
 
-![](https://github.com/lvCmx/study/tree/master/note/面试题/resource/redis集群结构.png)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis集群结构.png)
 
 redis主从架构 -> 读写分离架构 -> 可支持水平扩展的读高并发架构
 
@@ -387,7 +387,7 @@ appendfsync no          #从不同步。高效但是数据不会被持久化。
 
 **图解redis replication基本原理**
 
-![](https://github.com/lvCmx/study/tree/master/note/面试题/resource/redis_replication.png)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis_replication.png)
 
 **redis replication的核心机制**
 
@@ -434,13 +434,13 @@ appendfsync no          #从不同步。高效但是数据不会被持久化。
 对于这种情况解决方案如下：可以通过限流组件来限制落到数据库中的请求数量。或者是在程序中再使用ehcache再做一层小缓存，也能减轻一点数据库的压力  
 同时，也要保持redis对缓存有持久化的机制。
 
-![](https://github.com/lvCmx/study/tree/master/note/面试题/resource/redis雪崩.png)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis雪崩.png)
 
 ### 缓存穿透
 
 缓存穿透是指缓存和数据库中都没有的数据，而用户不断发起请求，如发起为id为“-1”的数据或id为特别大不存在的数据。这时的用户很可能是攻击者，攻击会导致数据库压力过大。
 
-![](https://github.com/lvCmx/study/tree/master/note/面试题/resource/redis穿透.png)
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis穿透.png)
 
 解决方案：在数据库中查询不存在时，将key设置到redis中，其value可以设置一个固定的值，例如UNKONWN
 
