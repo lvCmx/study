@@ -308,3 +308,145 @@ MySQL_Poxy解决方案：
 ![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/不停机双写方案.png)
 
 此方案不用停机，比较常用。 简单来说，就是在线上系统里面，之前所有写库的地方，增删改操作，都除了对老库增删改，都加上对新库的增删改，这就是所谓的双写。同时写两个库，老库和新库。然后系统部署之后，新库数据差太远，用之前说的导数工具，路起来读老库数据写新库，写的时候要根据gmt_modified这类判断这条数据最后修改时间，除非是读出来的数据在新库里没有，或者是比新库的数据新才会写。
+
+### <a name="8">8.分库分表之后生成全局唯一ID</a>
+
+数据库经过分库分表之后，系统在向数据库中插入数据的时候，需要生成一个唯一的数据库id，它在分库分表中必须是全局唯一的。常用的生成方法如下：
+
+**<a name="81">(1) 数据库自增主键</a>**
+
+在数据库中单独创建一张表，这张表只包含一个字段id，每次要向分库分表中插入数据时，先从这张表中获取一个id。  
+缺点：这张生成id的表是单库单表的，要是高并发的话，就会产生瓶颈。   
+适合的场景：你分库分表就俩原因，要不就是单库并发太高，要不就是单库数据量太大；除非是你并发不高，但是数据量太大导致的分库分表扩容，你可以用这个方案，因为可能每秒最高并发最多就几百，那么就走单独的一个库和表生成自增主键即可。
+
+**<a name="82">(2) UUID</a>**
+
+好处就是本地生成，不需要基于数据库，不好之处就是，UUID太长了，并且是字符串，作为主键性能太差了，不适合用于主键。   
+适合的场景：如果你是要随机生成个什么文件名了，编号之类的，你可以用uuid，但是作为主键是不能用uuid的。
+
+**<a name="83">(3) 获取系统当前时间</a>**
+
+这个就是获取当前时间即可，但是问题是，并发很高的时候，比如一秒并发几千，会有重复的情况，这个是肯定不合适的，基本就不用考虑了。  
+适合的场景：一般如果用这个方案，是将当前时间跟很多其他的业务字段拼接起来，作为一id，如果业务上你觉得可以接受，那么是可以的，你可以将别的业务字段值跟当前时间拼接起来，组成一个全局唯一的编号，订单编号啊：时间戳 + 用户id + 业务含义编码。
+
+**<a name="84">(4) redis生成唯一ID</a>**
+
+redis是部署在数据库集群之外，它不依赖于数据库，使用redis能够生成唯一的id这主要依赖于Redis是单线程的，所以也可以用生成全局唯一的ID，可以用redis的原子操作incr和incrby来实现。  
+也可以使用redis集群来获取更高的吞吐量，假如一个集群中有5台Redis，可以初始化每台Redis的值分别是1,2,3,4,5。然后步长都是5，各个redis生成的ID为：    
+A：1,6,11,16,21  
+B：2,7,12,17,22  
+C：3,8,13,18,23  
+D：4,9,14,19,24  
+E：5,10,15,20,25  
+
+**<a name="85">(5) snowflake算法</a>**
+
+twitter开源的分布式id生成算法，就是把一个64位的long型的id，1个bit是不用的，用其中的41 bit作为毫秒数，用10 bit作为工作机器id，12 bit作为序列号
+
+- 1 bit：不用，为啥呢？因为二进制里第一个bit为如果是1，那么都是负数，但是我们生成的id都是正数，所以第一个bit统一都是0  
+- 41 bit：表示的是时间戳，单位是毫秒。41 bit可以表示的数字多达2^41 - 1，也就是可以标识2 ^ 41 - 1个毫秒值，换算成年就是表示69年的时间。
+- 10 bit：记录工作机器id，代表的是这个服务最多可以部署在2^10台机器上哪，也就是1024台机器。但是10 bit里5个bit代表机房id，5个bit代表机器id。意思就是最多代表2 ^ 5个机房（32个机房），每个机房里可以代表2 ^ 5个机器（32台机器）。
+- 12 bit：这个是用来记录同一个毫秒内产生的不同id，12 bit可以代表的最大正整数是2 ^ 12 - 1 = 4096，也就是说可以用这个12bit代表的数字来区分同一个毫秒内的4096个不同的id
+
+例如：0 1011100111101101000110100010111 10001  00001 000000000001  
+第1位0：表示正数  
+接着41位表示：1559661847--> 2019-6-4 23:24:7  
+接着5位表示：17机房  
+接着5位表示：17机房下的第1台机器  
+最后12位表示：当前时间戳下并发的自增编号。
+
+***参考代码：***
+
+```java
+public class IdWorker{
+    private long workerId;
+    private long datacenterId;
+    private long sequence;
+
+    private long twepoch = 1288834974657L;
+
+    private long workerIdBits = 5L;
+    private long datacenterIdBits = 5L;
+    private long maxWorkerId = -1L ^ (-1L << workerIdBits); // 这个是二进制运算，就是5 bit最多只能有31个数字，也就是说机器id最多只能是32以内
+    private long maxDatacenterId = -1L ^ (-1L << datacenterIdBits); // 这个是一个意思，就是5 bit最多只能有31个数字，机房id最多只能是32以内
+    private long sequenceBits = 12L;
+
+    private long workerIdShift = sequenceBits;
+    private long datacenterIdShift = sequenceBits + workerIdBits;
+    private long timestampLeftShift = sequenceBits + workerIdBits + datacenterIdBits;
+    private long sequenceMask = -1L ^ (-1L << sequenceBits);
+
+    private long lastTimestamp = -1L;
+    
+    public IdWorker(long workerId, long datacenterId, long sequence){
+        // 这儿不就检查了一下，要求就是你传递进来的机房id和机器id不能超过32，不能小于0
+        if (workerId > maxWorkerId || workerId < 0) {
+            throw new IllegalArgumentException(String.format("worker Id can't be greater than %d or less than 0",maxWorkerId));
+        }
+        if (datacenterId > maxDatacenterId || datacenterId < 0) {
+            throw new IllegalArgumentException(String.format("datacenter Id can't be greater than %d or less than 0",maxDatacenterId));
+        }
+        System.out.printf("worker starting. timestamp left shift %d, datacenter id bits %d, worker id bits %d, sequence bits %d, workerid %d",
+                timestampLeftShift, datacenterIdBits, workerIdBits, sequenceBits, workerId);
+
+        this.workerId = workerId;
+        this.datacenterId = datacenterId;
+        this.sequence = sequence;
+    }
+
+    public synchronized long nextId() {
+    // 这儿就是获取当前时间戳，单位是毫秒
+        long timestamp = timeGen();
+
+        if (timestamp < lastTimestamp) {
+            System.err.printf("clock is moving backwards.  Rejecting requests until %d.", lastTimestamp);
+            throw new RuntimeException(String.format("Clock moved backwards.  Refusing to generate id for %d milliseconds",
+                    lastTimestamp - timestamp));
+        }
+        
+        // 在同一个毫秒内，又发送了一个请求生成一个id，0 -> 1
+        if (lastTimestamp == timestamp) {
+            sequence = (sequence + 1) & sequenceMask; // 这个意思是说一个毫秒内最多只能有4096个数字，无论你传递多少进来，这个位运算保证始终就是在4096这个范围内，避免你自己传递个sequence超过了4096这个范围
+            if (sequence == 0) {
+                timestamp = tilNextMillis(lastTimestamp);
+            }
+        } else {
+            sequence = 0;
+        }
+        // 这儿记录一下最近一次生成id的时间戳，单位是毫秒
+        lastTimestamp = timestamp;
+         // 这儿就是将时间戳左移，放到41 bit那儿；将机房id左移放到5 bit那儿；将机器id左移放到5 bit那儿；将序号放最后10 bit；最后拼接起来成一个64 bit的二进制数字，转换成10进制就是个long型
+        return ((timestamp - twepoch) << timestampLeftShift) |
+                (datacenterId << datacenterIdShift) |
+                (workerId << workerIdShift) |
+                sequence;
+    }
+    private long tilNextMillis(long lastTimestamp) {
+        long timestamp = timeGen();
+        while (timestamp <= lastTimestamp) {
+            timestamp = timeGen();
+        }
+        return timestamp;
+    }
+    private long timeGen(){
+        return System.currentTimeMillis();
+    }
+    public long getWorkerId(){
+        return workerId;
+    }
+    public long getDatacenterId(){
+        return datacenterId;
+    }
+    public long getTimestamp(){
+        return System.currentTimeMillis();
+    }
+    //---------------测试---------------
+    public static void main(String[] args) {
+        IdWorker worker = new IdWorker(1,1,1);
+        for (int i = 0; i < 30; i++) {
+            System.out.println(worker.nextId());
+        }
+    }
+}
+```
+
