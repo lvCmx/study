@@ -3,3 +3,4 @@
 #### [3.redis相关面试题](https://github.com/lvCmx/study/blob/master/note/%E9%9D%A2%E8%AF%95%E9%A2%98/redis%E7%BC%93%E5%AD%98.md)  
 #### [4.分布式dubbo面试题](https://github.com/lvCmx/study/blob/master/note/%E9%9D%A2%E8%AF%95%E9%A2%98/dubbo.md)  
 #### [5.mysql相关面试题](https://github.com/lvCmx/study/blob/master/note/%E9%9D%A2%E8%AF%95%E9%A2%98/mysql.md)  
+#### [6.zookeeper面试题](https://github.com/lvCmx/study/blob/master/note/%E9%9D%A2%E8%AF%95%E9%A2%98/zookeeper.md)  
