@@ -109,7 +109,8 @@ Mysql数据是落到磁盘中的，而Redis数据是暂存在内存中的，所�
 
 **（1）string**
 
-这是最基本的类型了，没啥可说的，就是普通的set和get，做简单的kv缓存
+这是最基本的类型了，没啥可说的，就是普通的set和get，做简单的kv缓存。
+
 
 **（2）hash**
 
@@ -416,6 +417,157 @@ appendfsync no          #从不同步。高效但是数据不会被持久化。
 **断点续传**
 
 ### redis replication的完整流运行程和原理的再次深入剖析
+
+
+
+### <a name="6">6.redis内部结构实现原理</a>
+
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis_jiegou.png)
+
+**string**
+
+如果一个字符串的内容可以转换为long，那么该字符串就会被转换成为long类型，对象的ptr就会指向该long，并且对象类型也用int类型表示。  
+普通的字符串有两种，embstr和raw。embstr应该是Redis 3.0新增的数据结构,在2.8中是没有的。如果字符串对象的长度小于39字节，就用embstr对象。否则用传统的raw对象。可以从下面这段代码看出：
+
+```c
+#define REDIS_ENCODING_EMBSTR_SIZE_LIMIT 39
+robj *createStringObject(char *ptr, size_t len) {
+if (len <= REDIS_ENCODING_EMBSTR_SIZE_LIMIT)
+    return createEmbeddedStringObject(ptr,len);
+else
+    return createRawStringObject(ptr,len);
+}
+```
+
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis_str.png)
+
+embstr的好处有如下几点：
+
+- embstr的创建只需分配一次内存，而raw为两次（一次为sds分配对象，另一次为objet分配对象，embstr省去了第一次）。
+- 相对地，释放内存的次数也由两次变为一次。
+- embstr的objet和sds放在一起，更好地利用缓存带来的优势。
+
+**list**
+
+***linkedList：***
+
+链表提供了节点重排以及节点顺序访问的能力，redis中的列表对象主要是由压缩列表和双端链表实现的，其定义结构如下：  
+
+```c
+type struct list{
+    //表头节点
+    listNode *head;
+    //表尾节点
+    listNode *tail;
+    //包含的节点总数
+    unsigned long len;
+    //一些操作函数 dup free match...
+};
+```
+
+其中每个listNode，都包含一个pre指针和next指针，并且包含有value则是列表对象的具体值。
+
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis_list.png)
+
+***ziplist***
+
+一个普通的双向链表，链表中每一项都占用独立的一块内存，各项之间用地址指针（或引用）连接起来。这种方式会带来大量的内存碎片，而且地址指针也会占用额外的内存。而ziplist却是将表中每一项存放在前后连续的地址空间内，一个ziplist整体占用一大块内存。它是一个表（list），但其实不是一个链表（linked list）。
+
+```c
+type struct ziplist{
+    //整个压缩列表的字节数
+    uint32_t zlbytes;
+    //记录压缩列表尾节点到头结点的字节数，直接可以求节点的地址
+    uint32_t zltail_offset;
+    //记录了节点数，有多种类型，默认如下
+    uint16_t zllength;
+    //节点列表节点
+    entryX;
+}
+//<zlbytes><zltail><zllen><entry>...<entry><zlend>
+```
+
+- `<zlbytes>`: 32bit，表示ziplist占用的字节总数（也包括`<zlbytes>`本身占用的4个字节）。
+- `<zltail>`: 32bit，表示ziplist表中最后一项（entry）在ziplist中的偏移字节数。`<zltail>`的存在，使得我们可以很方便地找到最后一项（不用遍历整个ziplist），从而可以在ziplist尾端快速地执行push或pop操作。
+- `<zllen>`: 16bit， 表示ziplist中数据项（entry）的个数。zllen字段因为只有16bit，所以可以表达的最大值为2^16-1。这里需要特别注意的是，如果ziplist中数据项个数超过了16bit能表达的最大值，ziplist仍然可以来表示。那怎么表示呢？这里做了这样的规定：如果`<zllen>`小于等于2^16-2（也就是不等于2^16-1），那么`<zllen>`就表示ziplist中数据项的个数；否则，也就是`<zllen>`等于16bit全为1的情况，那么`<zllen>`就不表示数据项个数了，这时候要想知道ziplist中数据项总数，那么必须对ziplist从头到尾遍历各个数据项，才能计数出来。
+- `<entry>`: 表示真正存放数据的数据项，长度不定。一个数据项（entry）也有它自己的内部结构，这个稍后再解释。
+- `<zlend>`: ziplist最后1个字节，是一个结束标记，值固定等于255。
+
+<entry>的组成：<prevrawlen><len><data>
+
+我们看到在真正的数据（`<data>`）前面，还有两个字段：
+
+- `<prevrawlen>`: 表示前一个数据项占用的总字节数。这个字段的用处是为了让ziplist能够从后向前遍历（从后一项的位置，只需向前偏移prevrawlen个字节，就找到了前一项）。这个字段采用变长编码。
+- `<len>`: 表示当前数据项的数据长度（即`<data>`部分的长度）。也采用变长编码。
+
+***总结：***
+
+当列表对象所存储的字符串元素长度小于64字节并且元素数量小于512个时，使用ziplist编码，否则使用linkedlist编码。
+
+**set**
+
+当集合对象所保存的元素都是整数值且元素数量不超过512个时，使用intset编码，否则使用hashtable编码
+
+***intset：***
+
+整数集合结构定义：
+
+```c
+typedef struct intset{
+    //编码方式
+    uint32_t encoding;
+    //元素数量
+    uint32_t length;
+    //存储元素的数组
+    int8_t contents[];
+}
+```
+
+整数集合的每个元素都是contents数组的一个数组项，各个项在数组中按值得大小从小到大有序排列，并且不包含重复的项。contents数组中元素的类型由encoding决定，当新加入元素之时，如果元素的编码大于contents是数组的编码，则会将所有元素的编码升级为新加入元素的编码，然后再插入。编码不会发生降级。 
+
+***hashtable：***
+
+字典定义：
+
+```c
+typedef struct dict{
+    //类型特定函数
+    dictType *type;
+    //哈希表 两个，一个用于实时存储，一个用于rehash
+    dictht ht[2];
+    //rehash索引 数据迁移时使用
+    unsigned rehashidx;
+}
+```
+
+哈希表结构：
+
+```c
+typedef struct dictht{
+    //哈希表数组
+    dictEntry**table;
+    //哈希表大小
+    unsigned long size;
+    //哈希表掩码，总是等于size-1，存储时计算索引值
+    unsigned long sizemask;
+    //已有元素数量
+    unsigned long used;
+}
+```
+
+![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis_hash_table.png)
+
+其中键值对都保存在节点dictEntity之中，并且通过拉链法解决哈希冲突，存储时通过MurmurHash算法来计算键的哈希值，能够更好的提供随机分布性且速度也快，扩容时采用渐进式的rehash，采用分而治之的方法，通过改变rehashidx的值，来一个个将元素移动到ht[1]中，完成以后将ht[1]变为ht[0]，原先的ht[0]变为ht[1]，同时将redhashidx置为-1。
+
+**hash**
+
+哈希对象的编码可以是压缩列表（ziplist）或者字典（hashtable），当哈希对象保存的所有键值对的键和值得长度都小于64字节并且元素数量小于512个时使用ziplist，否则使用hashtable。使用ziplist时，是依次将键和值压入链表之中，两者相邻。使用hashtable是是将键值对存于dictEntry之中。
+
+**zset**
+
+有序集合的编码可以是压缩列表(ziplist)或者跳跃表(skiplist)。当元素数量小于128个并且所有元素成员的长度都小于64字节之时使用ziplist编码，否则使用skiplist编码
+
+有关skiplist的数据结构，参考：https://blog.csdn.net/yellowriver007/article/details/79021103
 
 
 ## <a name="8">8.你能说说我们一般如何应对缓存雪崩以及穿透问题吗？</a>

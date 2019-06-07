@@ -84,3 +84,5 @@ read读锁是共享锁，write写锁是排它锁，当没有写时，允许多�
 
 ![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/write_zk.png)
 
+**<a name="25">(6) 参考代码</a>**
+
