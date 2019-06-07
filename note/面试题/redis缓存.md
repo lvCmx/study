@@ -7,7 +7,9 @@
 <a href="#3">3.redis都有哪些数据类型？分别在哪些场景下使用比较合适呢？</a>  
 <a href="#4">4.redis的过期策略能介绍一下？要不你再手写一个LRU？</a>  
 <a href="#5">5.怎么保证redis是高并发以及高可用的？</a>    
-<a  href="#6">6.redis内部结构实现原理</a>    
+<a  href="#6">6.redis内部结构实现原理</a>     
+<a  href="#7">7.redis实现分布式锁</a>     
+
 <a href="#8">8.你能说说我们一般如何应对缓存雪崩以及穿透问题吗？</a>
 
 
@@ -419,9 +421,7 @@ appendfsync no          #从不同步。高效但是数据不会被持久化。
 
 ### redis replication的完整流运行程和原理的再次深入剖析
 
-
-
-### <a name="6">6.redis内部结构实现原理</a>
+## <a name="6">6.redis内部结构实现原理</a>
 
 ![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis_jiegou.png)
 
@@ -569,6 +569,64 @@ typedef struct dictht{
 有序集合的编码可以是压缩列表(ziplist)或者跳跃表(skiplist)。当元素数量小于128个并且所有元素成员的长度都小于64字节之时使用ziplist编码，否则使用skiplist编码
 
 有关skiplist的数据结构，参考：https://blog.csdn.net/yellowriver007/article/details/79021103
+
+## <a name="7">7.redis如何实现分布式锁?</a>
+
+### 分布式锁的特性
+
+分布式锁有4个重要的考量标准：
+
+- 互斥性：在任意时刻，只有一个客户端能持有锁。
+- 不会发生死锁：即使有一个客户端在持有锁的期间崩溃而没有主动解锁，也能保证后续其他客户端能加锁。
+- 具有容错性：只要大部分的redis节点正常运行，客户端就可以加锁和解锁。
+- 解铃还须系铃人：加锁和解锁必须是同一个客户端，客户端自己不能把别人加的锁给解了。
+
+### redis单节点实现分布式锁
+
+单节点加锁时，不需要考虑太多因素。  
+
+```java
+public static boolean tryGetDistributedLock(Jedis jedis, String lockKey, String requestId, int expireTime) {
+    String result = jedis.set(lockKey, requestId, SET_IF_NOT_EXIST, SET_WITH_EXPIRE_TIME, expireTime);
+    if (LOCK_SUCCESS.equals(result)) {
+        return true;
+    }
+    return false;
+}
+```
+
+命令行的方式：set mylock 随机值 nx px 30000
+
+- 第一个为key,我们使用key来当锁，因为key是唯一的
+- 第二个为value，有key作为锁不就够了吗？为什么还要用到value?原因就是我们在上面讲到可靠性时，分布式锁要满足第4个条件解铃还须系铃人，我们通过value可以确定这把锁是哪个请求加的了，在解锁的时候可以有依据。
+- 第三个：nx这个参数我们填的是nx，意思是set if not exist，即当key不存在时，我们进行set操作；若key已经存在，则不做任何操作；
+- 第四个expx，这个参数我们传的是px，意思是我们要给这个key加一个过期的设置，具体时间由第五个参数决定。
+- 第五个为time，与第四个参数相呼应，代表key的过期时间。
+
+释放锁就是删除key，但是一般可以用lua脚本删除，判断value一样才删除。 
+
+```java
+String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+Object result = jedis.eval(script, Collections.singletonList(lockKey), Collections.singletonList(requestId));
+```
+
+解锁只需要两行代码就可以搞定了，第一行代码，我们写了一个简单的 lua脚本代码，第二行代码，我们将lua代码传到jedis.eval()方法。这段lua代码的功能是什么呢？首先获取锁对应的value值，检查是否与requestId相等，如果相等则删除锁(解锁)因为lua脚本具有原子性。
+
+**单节点存在的问题**
+
+因为如果是普通的 redis 单实例，那就是单点故障。或者是 redis 普通主从，那 redis 主从异步复制，如果主节点挂了（key 就没有了），key 还没同步到从节点，此时从节点切换为主节点，别人就可以 set key，从而拿到锁。
+
+### 集群模式的Redlock
+
+这个场景是假设有一个redis cluster，有5个redis master实例。然后执行如下步骤获取一把锁：
+
+1. 获取当前时间（单位是毫秒）
+2. 轮流用相同的key和随机值在5个节点上请求锁，在这一步里，客户端在每个master上请求锁时，会有一个和总的锁释放时间相比小的多的超时时间。比如如果锁自动释放时间是19秒钟，那每个节点锁请求的超时时间可能是5-50毫秒的范围，这个可以防止一个客户端在某个宕掉的master节点上阻塞过长时间，如果一个master节点不可用了，我们应该尽快尝试下一个master节点。
+3. 客户端计算第二步中获取锁所花的时间，只有当客户端在大多数master节点上成功获取了锁，而且总共消耗的时间不超过锁释放时间，这个锁就认为是获取成功了。
+4. 如果锁获取成功了，那现在锁自动释放时间是最初锁释放时间减去之前获取锁所消耗的时间。
+5. 如果获取锁失败了，不管是因为获取成功的锁不超过一半还是因为总消耗时间超过了锁释放时间，客户端都会到每个master节点上释放锁，即便是那些他认为没有获取成功的锁。
+
+
 
 
 ## <a name="8">8.你能说说我们一般如何应对缓存雪崩以及穿透问题吗？</a>
