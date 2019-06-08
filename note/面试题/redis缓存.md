@@ -507,8 +507,6 @@ master每次接收到写命令之后，现在内部写入数据，然后异步�
 
 
 
-
-
 ## <a name="6">6.redis内部结构实现原理</a>
 
 ![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/redis_jiegou.png)
