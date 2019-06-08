@@ -65,10 +65,6 @@ Mysql数据是落到磁盘中的，而Redis数据是暂存在内存中的，所�
 
  4）集群模式：memcached没有原生的集群模式，需要依靠客户端来实现往集群中分片写入数据；但是redis目前是原生支持cluster模式的，redis官方就是支持redis cluster集群模式的，比memcached来说要更好
 
-### redis的线程模型
-
-## <a name="2">2.来聊聊redis的线程模型吧？为啥单线程还能有很高的效率？</a>
-
 ### redis的单线程模型
 
 ![](https://github.com/lvCmx/study/blob/master/note/面试题/resource/01_redis单线程模型.jpg)
