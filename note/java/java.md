@@ -20,4 +20,5 @@
 [垃圾收集器](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
 [内存分配策略](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
 [虚拟机类加载机制](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
+[虚拟机性能监控与故障处理工具](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
 **设计模式**  
