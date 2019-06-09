@@ -19,7 +19,7 @@
 **JVM**
 * [JVM内存区域详解](https://github.com/lvCmx/study/blob/master/note/java/jvm/JVM%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F.md)  
 * [垃圾收集器](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
-* [内存分配策略](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
+* [内存分配策略](https://github.com/lvCmx/study/blob/master/note/java/jvm/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5.md)  
 * [虚拟机类加载机制](https://github.com/lvCmx/study/blob/master/note/java/jvm/)  
 * [虚拟机性能监控与故障处理工具](https://github.com/lvCmx/study/blob/master/note/java/jvm/)
 
