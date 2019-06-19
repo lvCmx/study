@@ -9,7 +9,7 @@
 * [Map详解](https://github.com/lvCmx/study/blob/master/note/java/java%E5%AE%B9%E5%99%A8/Map.md)  
 
 **JavaIO**  
-
+* [常见IO类型](https://github.com/lvCmx/study/blob/master/note/java/javaIO/javaIO.md)  
 
 **Java多线程**  
 * [Java多线程编程核心技术](https://github.com/lvCmx/study/blob/master/note/java/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E7%BC%96%E7%A8%8B%E6%A0%B8%E5%BF%83%E6%8A%80%E6%9C%AF/index.md)  
