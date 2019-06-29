@@ -70,3 +70,21 @@
 
 - Reactor收到事件通知后，分发给绑定了对应事件的Handler执行Task。
 
+**NIO+单线程Reactor模式**
+
+![](F:\__study__\hulianwang\study\note\java\javaIO\img\nio-reacter.png)
+
+说明：
+
+Reactor：负责响应事件，将事件分发给绑定了该事件的Handler处理；
+
+Handler：事件处理器，绑定了某类事件，负责执行对应事件的Task对事件进行处理；
+
+Acceptor：就是处理客户端链接connect事件的；Handler的一种，绑定了connect事件，当客户端发起connect请求时，reactor会将accept事件分发到acceptor处理。
+
+该模型的缺点：
+
+- 单线程版本Reactor模型优点是不需要做并发控制，代码实现简单清晰；
+
+- 缺点是不能利用多核CPU，一个线程需要执行处理所有的accept、read、decode、process、encode、send事件，如果其中decode、process、encode事件的处理很耗时，则服务端无法及时响应其他客户端的请求事件。
+
